@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Echo Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+
+        .audio-section {
+            margin: 30px 0;
+            padding: 25px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 15px;
+            border: 2px solid rgba(102, 126, 234, 0.3);
+        }
+
+        .section-title {
+            font-size: 1.4em;
+            color: #333;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1em;
+            background: white;
+            margin-bottom: 15px;
+            transition: border-color 0.3s ease;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+            min-width: 120px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .status.success {
+            background: rgba(76, 175, 80, 0.1);
+            color: #4CAF50;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .status.error {
+            background: rgba(244, 67, 54, 0.1);
+            color: #f44336;
+            border: 1px solid rgba(244, 67, 54, 0.3);
+        }
+
+        .status.info {
+            background: rgba(33, 150, 243, 0.1);
+            color: #2196F3;
+            border: 1px solid rgba(33, 150, 243, 0.3);
+        }
+
+        .volume-meter {
+            width: 100%;
+            height: 20px;
+            background: #eee;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 15px 0;
+            position: relative;
+        }
+
+        .volume-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #FFC107, #FF5722);
+            width: 0%;
+            transition: width 0.1s ease;
+            border-radius: 10px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .volume-control input[type="range"] {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .volume-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+        }
+
+        .volume-control input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+        }
+
+        .info-text {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 20px;
+            line-height: 1.5;
+        }
+
+        .init-button {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            margin-bottom: 20px;
+            font-size: 1.1em;
+            padding: 15px 35px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Audio Echo Monitor</h1>
+
+        <button id="initAudio" class="init-button">🎵 Start Audio System</button>
+
+        <div class="audio-section">
+            <div class="section-title">🎤 Microphone</div>
+            <select id="micSelect" disabled>
+                <option value="">Select a microphone...</option>
+            </select>
+            <div class="volume-meter">
+                <div class="volume-bar" id="micVolumeBar"></div>
+            </div>
+            <div class="volume-control">
+                <span>🔊</span>
+                <input type="range" id="micVolume" min="0" max="100" value="80" disabled>
+                <span id="micVolumeValue">80%</span>
+            </div>
+            <div class="controls">
+                <button id="startMic" disabled>Start Mic Echo</button>
+                <button id="stopMic" disabled>Stop Mic</button>
+                <button id="testAudio" disabled>🔊 Test Audio</button>
+            </div>
+        </div>
+
+        <div class="audio-section">
+            <div class="section-title">🖥️ System Audio</div>
+            <div class="volume-meter">
+                <div class="volume-bar" id="systemVolumeBar"></div>
+            </div>
+            <div class="volume-control">
+                <span>🔊</span>
+                <input type="range" id="systemVolume" min="0" max="100" value="50" disabled>
+                <span id="systemVolumeValue">50%</span>
+            </div>
+            <div class="controls">
+                <button id="startSystem" disabled>Start System Audio</button>
+                <button id="stopSystem" disabled>Stop System Audio</button>
+            </div>
+        </div>
+
+        <div id="status" class="status info">
+            Click "Start Audio System" to initialize audio permissions
+        </div>
+
+        <div class="info-text">
+            <strong>Notes:</strong><br>
+            • System audio requires screen sharing with audio enabled<br>
+            • Use headphones to prevent feedback loops<br>
+            • Some browsers may require HTTPS for full functionality
+        </div>
+    </div>
+
+    <script>
+        class AudioEchoMonitor {
+            constructor() {
+                this.audioContext = null;
+                this.micStream = null;
+                this.systemStream = null;
+                this.micSource = null;
+                this.systemSource = null;
+                this.micAnalyzer = null;
+                this.systemAnalyzer = null;
+                this.micGainNode = null;
+                this.systemGainNode = null;
+                this.animationId = null;
+                this.isInitialized = false;
+
+                this.initializeElements();
+                this.bindEvents();
+            }
+
+            initializeElements() {
+                this.elements = {
+                    initAudio: document.getElementById('initAudio'),
+                    micSelect: document.getElementById('micSelect'),
+                    startMic: document.getElementById('startMic'),
+                    stopMic: document.getElementById('stopMic'),
+                    testAudio: document.getElementById('testAudio'),
+                    startSystem: document.getElementById('startSystem'),
+                    stopSystem: document.getElementById('stopSystem'),
+                    status: document.getElementById('status'),
+                    micVolumeBar: document.getElementById('micVolumeBar'),
+                    systemVolumeBar: document.getElementById('systemVolumeBar'),
+                    micVolume: document.getElementById('micVolume'),
+                    systemVolume: document.getElementById('systemVolume'),
+                    micVolumeValue: document.getElementById('micVolumeValue'),
+                    systemVolumeValue: document.getElementById('systemVolumeValue')
+                };
+            }
+
+            bindEvents() {
+                this.elements.initAudio.addEventListener('click', () => this.initializeAudio());
+                this.elements.startMic.addEventListener('click', () => this.startMicrophone());
+                this.elements.stopMic.addEventListener('click', () => this.stopMicrophone());
+                this.elements.testAudio.addEventListener('click', () => this.testAudio());
+                this.elements.startSystem.addEventListener('click', () => this.startSystemAudio());
+                this.elements.stopSystem.addEventListener('click', () => this.stopSystemAudio());
+                
+                this.elements.micVolume.addEventListener('input', (e) => {
+                    const value = e.target.value;
+                    this.elements.micVolumeValue.textContent = value + '%';
+                    if (this.micGainNode) {
+                        this.micGainNode.gain.value = value / 100;
+                    }
+                });
+
+                this.elements.systemVolume.addEventListener('input', (e) => {
+                    const value = e.target.value;
+                    this.elements.systemVolumeValue.textContent = value + '%';
+                    if (this.systemGainNode) {
+                        this.systemGainNode.gain.value = value / 100;
+                    }
+                });
+            }
+
+            async initializeAudio() {
+                try {
+                    this.showStatus('Initializing audio system...', 'info');
+                    
+                    // Create audio context
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    // Resume if suspended
+                    if (this.audioContext.state === 'suspended') {
+                        await this.audioContext.resume();
+                    }
+                    
+                    // Request microphone permission first - this is crucial for device enumeration
+                    this.showStatus('Requesting microphone permission...', 'info');
+                    const tempStream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: {
+                            echoCancellation: false,
+                            noiseSuppression: false,
+                            autoGainControl: false
+                        } 
+                    });
+                    
+                    // Keep the stream active briefly to ensure proper device enumeration
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    tempStream.getTracks().forEach(track => track.stop());
+                    
+                    // Wait a bit more for device enumeration to update
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    
+                    // Load microphones
+                    await this.loadMicrophones();
+                    
+                    // Enable controls
+                    this.enableControls();
+                    this.isInitialized = true;
+                    
+                    this.showStatus('Audio system ready! Select a microphone to start.', 'success');
+                    
+                } catch (error) {
+                    this.showStatus('Failed to initialize audio: ' + error.message, 'error');
+                    console.error('Audio initialization error:', error);
+                }
+            }
+
+            enableControls() {
+                this.elements.micSelect.disabled = false;
+                this.elements.startMic.disabled = false;
+                this.elements.testAudio.disabled = false;
+                this.elements.startSystem.disabled = false;
+                this.elements.micVolume.disabled = false;
+                this.elements.systemVolume.disabled = false;
+                this.elements.initAudio.style.display = 'none';
+            }
+
+            async loadMicrophones() {
+                try {
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    const audioInputs = devices.filter(device => device.kind === 'audioinput');
+                    
+                    console.log('Available audio devices:', audioInputs.map(d => ({
+                        deviceId: d.deviceId,
+                        label: d.label,
+                        kind: d.kind
+                    })));
+                    
+                    this.elements.micSelect.innerHTML = '<option value="">Select a microphone...</option>';
+                    
+                    if (audioInputs.length === 0) {
+                        throw new Error('No microphones found');
+                    }
+                    
+                    audioInputs.forEach((device, index) => {
+                        const option = document.createElement('option');
+                        option.value = device.deviceId;
+                        
+                        // Better device naming
+                        let deviceName = device.label;
+                        if (!deviceName || deviceName.trim() === '') {
+                            deviceName = `Microphone ${index + 1}`;
+                        }
+                        
+                        option.textContent = deviceName;
+                        this.elements.micSelect.appendChild(option);
+                    });
+
+                    // Add default device option
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = 'default';
+                    defaultOption.textContent = 'Default Microphone';
+                    this.elements.micSelect.insertBefore(defaultOption, this.elements.micSelect.children[1]);
+                    
+                } catch (error) {
+                    throw new Error('Could not load microphones: ' + error.message);
+                }
+            }
+
+            testAudio() {
+                if (!this.isInitialized) {
+                    this.showStatus('Please initialize audio system first', 'error');
+                    return;
+                }
+
+                // Play a simple test tone
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(440, this.audioContext.currentTime); // A4 note
+                
+                gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.3, this.audioContext.currentTime + 0.1);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 1);
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                oscillator.start(this.audioContext.currentTime);
+                oscillator.stop(this.audioContext.currentTime + 1);
+                
+                this.showStatus('Playing test tone - you should hear a beep if audio is working', 'info');
+                
+                setTimeout(() => {
+                    if (!this.micStream && !this.systemStream) {
+                        this.showStatus('Test tone finished. Try selecting a microphone now.', 'success');
+                    }
+                }, 1100);
+            }
+
+            async startMicrophone() {
+                try {
+                    if (!this.isInitialized) {
+                        this.showStatus('Please initialize audio system first', 'error');
+                        return;
+                    }
+
+                    const deviceId = this.elements.micSelect.value;
+                    if (!deviceId) {
+                        this.showStatus('Please select a microphone first', 'error');
+                        return;
+                    }
+
+                    this.showStatus('Starting microphone echo...', 'info');
+
+                    // More flexible constraints
+                    let constraints;
+                    if (deviceId === 'default') {
+                        constraints = {
+                            audio: {
+                                echoCancellation: false,
+                                noiseSuppression: false,
+                                autoGainControl: false
+                            }
+                        };
+                    } else {
+                        constraints = {
+                            audio: {
+                                deviceId: { ideal: deviceId }, // Use ideal instead of exact for better compatibility
+                                echoCancellation: false,
+                                noiseSuppression: false,
+                                autoGainControl: false
+                            }
+                        };
+                    }
+
+                    console.log('Using constraints:', constraints);
+
+                    this.micStream = await navigator.mediaDevices.getUserMedia(constraints);
+                    console.log('Got microphone stream:', this.micStream);
+                    console.log('Audio tracks:', this.micStream.getAudioTracks().map(t => ({
+                        label: t.label,
+                        enabled: t.enabled,
+                        muted: t.muted,
+                        settings: t.getSettings()
+                    })));
+
+                    this.micSource = this.audioContext.createMediaStreamSource(this.micStream);
+                    
+                    // Create gain node for volume control
+                    this.micGainNode = this.audioContext.createGain();
+                    this.micGainNode.gain.value = this.elements.micVolume.value / 100;
+                    
+                    // Create analyzer for volume visualization
+                    this.micAnalyzer = this.audioContext.createAnalyser();
+                    this.micAnalyzer.fftSize = 512;
+                    this.micAnalyzer.smoothingTimeConstant = 0.3;
+                    
+                    // Audio routing for echo: source -> gain -> destination (for playback)
+                    // Also: source -> gain -> analyzer (for visualization)
+                    this.micSource.connect(this.micGainNode);
+                    this.micGainNode.connect(this.audioContext.destination); // This creates the echo
+                    this.micGainNode.connect(this.micAnalyzer); // This is for visualization
+
+                    console.log('Audio routing completed - microphone should now echo to speakers');
+
+                    this.elements.startMic.disabled = true;
+                    this.elements.stopMic.disabled = false;
+                    this.elements.micSelect.disabled = true;
+
+                    this.showStatus('🎤 Microphone echo active - speak to test! (Use headphones to avoid feedback)', 'success');
+                    this.startVolumeVisualization();
+
+                } catch (error) {
+                    this.showStatus('Error starting microphone: ' + error.message, 'error');
+                    console.error('Microphone error:', error);
+                }
+            }
+
+            stopMicrophone() {
+                try {
+                    if (this.micStream) {
+                        this.micStream.getTracks().forEach(track => track.stop());
+                        this.micStream = null;
+                    }
+
+                    if (this.micSource) {
+                        this.micSource.disconnect();
+                        this.micSource = null;
+                    }
+
+                    if (this.micGainNode) {
+                        this.micGainNode.disconnect();
+                        this.micGainNode = null;
+                    }
+
+                    if (this.micAnalyzer) {
+                        this.micAnalyzer.disconnect();
+                        this.micAnalyzer = null;
+                    }
+
+                    this.elements.startMic.disabled = false;
+                    this.elements.stopMic.disabled = true;
+                    this.elements.micSelect.disabled = false;
+                    this.elements.micVolumeBar.style.width = '0%';
+
+                    this.showStatus('Microphone echo stopped', 'info');
+                    this.checkStopVisualization();
+                    
+                } catch (error) {
+                    console.error('Error stopping microphone:', error);
+                }
+            }
+
+            async startSystemAudio() {
+                try {
+                    if (!this.isInitialized) {
+                        this.showStatus('Please initialize audio system first', 'error');
+                        return;
+                    }
+
+                    this.showStatus('Requesting screen share with audio...', 'info');
+
+                    // Request screen share with audio
+                    this.systemStream = await navigator.mediaDevices.getDisplayMedia({
+                        video: { 
+                            mediaSource: 'screen',
+                            width: { ideal: 1920 },
+                            height: { ideal: 1080 }
+                        },
+                        audio: {
+                            echoCancellation: false,
+                            noiseSuppression: false,
+                            autoGainControl: false
+                        }
+                    });
+
+                    // Check if audio track is available
+                    const audioTracks = this.systemStream.getAudioTracks();
+                    if (audioTracks.length === 0) {
+                        throw new Error('No system audio captured. Make sure to enable "Share system audio" when prompted.');
+                    }
+
+                    this.systemSource = this.audioContext.createMediaStreamSource(this.systemStream);
+                    
+                    // Create gain node for volume control
+                    this.systemGainNode = this.audioContext.createGain();
+                    this.systemGainNode.gain.value = this.elements.systemVolume.value / 100;
+                    
+                    // Create analyzer for volume visualization
+                    this.systemAnalyzer = this.audioContext.createAnalyser();
+                    this.systemAnalyzer.fftSize = 512;
+                    this.systemAnalyzer.smoothingTimeConstant = 0.3;
+                    
+                    // Audio routing: source -> gain -> destination (for playback)
+                    // Also: source -> gain -> analyzer (for visualization)
+                    this.systemSource.connect(this.systemGainNode);
+                    this.systemGainNode.connect(this.audioContext.destination); // This plays the system audio
+                    this.systemGainNode.connect(this.systemAnalyzer); // This is for visualization
+
+                    this.elements.startSystem.disabled = true;
+                    this.elements.stopSystem.disabled = false;
+
+                    this.showStatus('🖥️ System audio monitoring active!', 'success');
+                    this.startVolumeVisualization();
+
+                    // Handle stream ending (user stops sharing)
+                    this.systemStream.getVideoTracks()[0].addEventListener('ended', () => {
+                        this.stopSystemAudio();
+                        this.showStatus('Screen sharing ended', 'info');
+                    });
+
+                } catch (error) {
+                    this.showStatus('Error starting system audio: ' + error.message, 'error');
+                    console.error('System audio error:', error);
+                }
+            }
+
+            stopSystemAudio() {
+                try {
+                    if (this.systemStream) {
+                        this.systemStream.getTracks().forEach(track => track.stop());
+                        this.systemStream = null;
+                    }
+
+                    if (this.systemSource) {
+                        this.systemSource.disconnect();
+                        this.systemSource = null;
+                    }
+
+                    if (this.systemGainNode) {
+                        this.systemGainNode.disconnect();
+                        this.systemGainNode = null;
+                    }
+
+                    if (this.systemAnalyzer) {
+                        this.systemAnalyzer.disconnect();
+                        this.systemAnalyzer = null;
+                    }
+
+                    this.elements.startSystem.disabled = false;
+                    this.elements.stopSystem.disabled = true;
+                    this.elements.systemVolumeBar.style.width = '0%';
+
+                    this.showStatus('System audio monitoring stopped', 'info');
+                    this.checkStopVisualization();
+                    
+                } catch (error) {
+                    console.error('Error stopping system audio:', error);
+                }
+            }
+
+            startVolumeVisualization() {
+                if (this.animationId) return;
+
+                const dataArray = new Uint8Array(256);
+
+                const updateBars = () => {
+                    // Update microphone volume bar
+                    if (this.micAnalyzer) {
+                        this.micAnalyzer.getByteFrequencyData(dataArray);
+                        const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
+                        const percentage = Math.min((average / 128) * 100, 100);
+                        this.elements.micVolumeBar.style.width = percentage + '%';
+                    }
+
+                    // Update system volume bar
+                    if (this.systemAnalyzer) {
+                        this.systemAnalyzer.getByteFrequencyData(dataArray);
+                        const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
+                        const percentage = Math.min((average / 128) * 100, 100);
+                        this.elements.systemVolumeBar.style.width = percentage + '%';
+                    }
+
+                    this.animationId = requestAnimationFrame(updateBars);
+                };
+
+                updateBars();
+            }
+
+            checkStopVisualization() {
+                if (!this.micAnalyzer && !this.systemAnalyzer && this.animationId) {
+                    cancelAnimationFrame(this.animationId);
+                    this.animationId = null;
+                }
+            }
+
+            showStatus(message, type) {
+                this.elements.status.textContent = message;
+                this.elements.status.className = `status ${type}`;
+            }
+        }
+
+        // Initialize the app when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new AudioEchoMonitor();
+        });
+    </script>
+</body>
+</html>
